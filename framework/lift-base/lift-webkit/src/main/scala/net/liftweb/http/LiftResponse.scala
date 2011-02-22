@@ -257,25 +257,41 @@ trait LiftResponse {
   def toResponse: BasicResponse
 }
 
-object JsonResponse {
+trait JsonResponseAble {
   def headers: List[(String, String)] = S.getHeaders(Nil)
   def cookies: List[HTTPCookie] = S.responseCookies
 
-  def apply(json: JsExp): LiftResponse = 
+  def apply(json: JsExp): LiftResponse =
     new JsonResponse(json, headers, cookies, 200)
-  
-  def apply(json: JsonAST.JValue): LiftResponse = 
+
+  def apply(json: JsonAST.JValue): LiftResponse =
     apply(json, headers, cookies, 200)
 
-  def apply(json: JsonAST.JValue, code: Int): LiftResponse = 
+  def apply(json: JsonAST.JValue, code: Int): LiftResponse =
     apply(json, headers, cookies, code)
 
 
   def apply(_json: JsonAST.JValue, _headers: List[(String, String)], _cookies: List[HTTPCookie], code: Int): LiftResponse = {
     new JsonResponse(new JsExp {
-      lazy val toJsCmd = Printer.pretty(JsonAST.render((_json)))
+      lazy val toJsCmd = showJValue((_json))
     }, _headers, _cookies, code)
   }
+
+  def showJValue(jv: JsonAST.JValue): String = Printer.compact(JsonAST.render(jv))
+}
+
+object JsonResponse extends JsonResponseAble
+
+/**
+ * A JsonResponse that emits compact output
+ */
+object JsonCompactResponse extends JsonResponseAble
+
+/**
+ * A JsonResponse that emits pretty output
+ */
+object JsonPrettyResponse extends JsonResponseAble {
+    override def showJValue(jv: JsonAST.JValue): String = Printer.pretty(JsonAST.render(jv))
 }
 
 case class JsonResponse(json: JsExp, headers: List[(String, String)], cookies: List[HTTPCookie], code: Int) extends LiftResponse {
